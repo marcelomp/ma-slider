@@ -1,0 +1,5 @@
+- double check README content
+- double check the .swift files and comments
+- review the description for the DocC iOS specialist
+- fix the issue with the UIKit version not correctly updating the steps
+- fix the intrinsicContent size to dynamically calculate based on the labels size
