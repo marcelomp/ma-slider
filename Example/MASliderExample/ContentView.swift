@@ -1,21 +1,11 @@
-//
-//  ContentView.swift
-//  MASliderExample
-//
-//  Created by Marcelo Mendes Pereira on 20/02/26.
-//
-
 import SwiftUI
+
+import MASlider
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        MASliderPreview()
+            .border(.red)
     }
 }
 

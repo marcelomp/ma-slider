@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		396033C72F49002C00CDEAA4 /* MASlider in Frameworks */ = {isa = PBXBuildFile; productRef = 396033C62F49002C00CDEAA4 /* MASlider */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		396033AD2F48FECF00CDEAA4 /* MASliderExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MASliderExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				396033C72F49002C00CDEAA4 /* MASlider in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = MASliderExample;
 			packageProductDependencies = (
+				396033C62F49002C00CDEAA4 /* MASlider */,
 			);
 			productName = MASliderExample;
 			productReference = 396033AD2F48FECF00CDEAA4 /* MASliderExample.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 396033A42F48FECF00CDEAA4;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				396033C52F49002C00CDEAA4 /* XCLocalSwiftPackageReference "../../ma-slider" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 396033AE2F48FECF00CDEAA4 /* Products */;
 			projectDirPath = "";
@@ -345,6 +354,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		396033C52F49002C00CDEAA4 /* XCLocalSwiftPackageReference "../../ma-slider" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../ma-slider";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		396033C62F49002C00CDEAA4 /* MASlider */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MASlider;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 396033A52F48FECF00CDEAA4 /* Project object */;
 }
