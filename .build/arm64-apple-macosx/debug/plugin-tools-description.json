@@ -1,0 +1,237 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.MASlider-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/sources",
+      "importPath" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcelo.mendes/dev/ma-slider/Sources/MASlider.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/swift-version-596C98914D6876CD.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "MASlider",
+      "moduleOutputPath" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/Modules/MASlider.swiftmodule",
+      "objects" : [
+        "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/MASlider.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx10.13",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/include/MASlider-Swift.h",
+        "-color-diagnostics",
+        "-swift-version",
+        "6",
+        "-plugin-path",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-F",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "ma_slider"
+      ],
+      "outputFileMapPath" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/MASlider.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/Modules/MASlider.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/marcelo.mendes/dev/ma-slider/Sources/MASlider.swift"
+      ],
+      "tempsPath" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "MASlider" : [
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "MASlider",
+      "-package-name",
+      "ma_slider",
+      "-c",
+      "/Users/marcelo.mendes/dev/ma-slider/Sources/MASlider.swift",
+      "-I",
+      "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx10.13",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/include/MASlider-Swift.h",
+      "-color-diagnostics",
+      "-swift-version",
+      "6",
+      "-plugin-path",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-F",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "ma_slider",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "MASlider" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/marcelo.mendes/dev/ma-slider/Sources/MASlider.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/sources"
+    },
+    "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/swift-version-596C98914D6876CD.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode-26.3.0-Release.Candidate.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/swift-version-596C98914D6876CD.txt"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/master.swiftdeps"
+  },
+  "/Users/marcelo.mendes/dev/ma-slider/Sources/MASlider.swift": {
+    "dependencies": "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/MASlider.d",
+    "object": "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/MASlider.swift.o",
+    "swiftmodule": "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/MASlider~partial.swiftmodule",
+    "swift-dependencies": "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/MASlider.swiftdeps",
+    "diagnostics": "/Users/marcelo.mendes/dev/ma-slider/.build/arm64-apple-macosx/debug/MASlider.build/MASlider.dia"
+  }
+}
