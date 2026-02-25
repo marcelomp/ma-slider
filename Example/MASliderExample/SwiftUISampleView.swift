@@ -1,3 +1,6 @@
+// Copyright (c) 2017 mpmarcelomp@gmail.com
+// See LICENSE for license information.
+
 import SwiftUI
 
 import MASlider

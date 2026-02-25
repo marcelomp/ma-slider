@@ -1,3 +1,6 @@
+// Copyright (c) 2017 mpmarcelomp@gmail.com
+// See LICENSE for license information.
+
 import SwiftUI
 
 /// SwiftUI wrapper for ``MASliderControl``. Bind ``step`` for two-way updates; pass ``numberOfSteps``, colors, optional ``thumbImage``, and step/selected text or attributed strings.

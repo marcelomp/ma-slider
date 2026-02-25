@@ -1,3 +1,6 @@
+// Copyright (c) 2017 mpmarcelomp@gmail.com
+// See LICENSE for license information.
+
 import UIKit
 
 /// Discrete step slider; subclasses ``UIControl`` and sends ``UIControl/Event/valueChanged``. Pan or tap (with wobble) to change step; supports optional step labels and thumb image.

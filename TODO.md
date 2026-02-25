@@ -3,3 +3,4 @@
 - review the description for the DocC iOS specialist
 - fix the issue with the UIKit version not correctly updating the steps
 - fix the intrinsicContent size to dynamically calculate based on the labels size
+- generate the tag for a release
