@@ -7,20 +7,28 @@ import SwiftUI
 public struct MASlider: UIViewRepresentable {
     /// Binding to the current step index (updated when the user pans or taps).
     private let step: Binding<Int>
+    
     /// Total number of steps (minimum 2).
     private let numberOfSteps: Int
+    
     /// Color of the track and step knots.
     private let trackTintColor: Color
+    
     /// Background color of the thumb.
     private let thumbTintColor: Color
+    
     /// Optional image on the thumb (e.g. SF Symbol); rendered as template with white tint.
     private let thumbImage: UIImage?
+    
     /// Label text for unselected steps.
     private let stepText: String?
+    
     /// Attributed label for unselected steps (overrides `stepText` when set).
     private let attributedStepText: AttributedString?
+    
     /// Label text for the selected step.
     private let selectedStepText: String?
+    
     /// Attributed label for the selected step (overrides `selectedStepText` when set).
     private let attributedSelectedStepText: AttributedString?
 
@@ -78,41 +86,30 @@ public struct MASlider: UIViewRepresentable {
         if let thumbImage = thumbImage {
             uiView.thumbImage = thumbImage
         }
-        if let stepText = stepText {
-            uiView.stepText = stepText
-        }
+        uiView.stepText = stepText ?? ""
+        uiView.selectedStepText = selectedStepText ?? ""
         if let attributedStepText = attributedStepText {
             uiView.attributedStepText = NSAttributedString(attributedStepText)
-        }
-        if let selectedStepText = selectedStepText {
-            uiView.selectedStepText = selectedStepText
         }
         if let attributedSelectedStepText = attributedSelectedStepText {
             uiView.attributedSelectedStepText = NSAttributedString(attributedSelectedStepText)
         }
-        
+
         uiView.addTarget(context.coordinator, action: #selector(Coordinator.valueChanged(_:)), for: .valueChanged)
         
         return uiView
     }
     
-    public func updateUIView(
-        _ uiView: UIViewType,
-        context: Context
-    ) {
+    public func updateUIView(_ uiView: UIViewType, context: Context) {
         uiView.step = step.wrappedValue
         uiView.numberOfSteps = numberOfSteps
         uiView.trackTintColor = UIColor(trackTintColor)
         uiView.thumbTintColor = UIColor(thumbTintColor)
         
-        if let stepText = stepText {
-            uiView.stepText = stepText
-        }
+        uiView.stepText = stepText ?? ""
+        uiView.selectedStepText = selectedStepText ?? ""
         if let attributedStepText = attributedStepText {
             uiView.attributedStepText = NSAttributedString(attributedStepText)
-        }
-        if let selectedStepText = selectedStepText {
-            uiView.selectedStepText = selectedStepText
         }
         if let attributedSelectedStepText = attributedSelectedStepText {
             uiView.attributedSelectedStepText = NSAttributedString(attributedSelectedStepText)

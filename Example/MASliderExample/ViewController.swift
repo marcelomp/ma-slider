@@ -13,12 +13,16 @@ final class ViewController: UIViewController {
     private var trackTintColor: UIColor = .systemRed
     private var thumbTintColor: UIColor = .systemRed
     private var thumbImage: UIImage? = UIImage(systemName: "lock.fill")
+    private var stepText: String = ""
+    private var selectedStepText: String = ""
 
     // MARK: - Subviews
 
     private lazy var scrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.translatesAutoresizingMaskIntoConstraints = false
+        sv.contentInsetAdjustmentBehavior = .automatic
+        sv.preservesSuperviewLayoutMargins = true
         sv.alwaysBounceVertical = true
         return sv
     }()
@@ -26,6 +30,8 @@ final class ViewController: UIViewController {
     private lazy var stackView: UIStackView = {
         let sv = UIStackView()
         sv.translatesAutoresizingMaskIntoConstraints = false
+        sv.isLayoutMarginsRelativeArrangement = true
+        sv.directionalLayoutMargins = .init(top: 0, leading: 16, bottom: 0, trailing: 16)
         sv.axis = .vertical
         sv.spacing = 16
         sv.alignment = .fill
@@ -88,6 +94,24 @@ final class ViewController: UIViewController {
         return w
     }()
 
+    private lazy var stepTextField: UITextField = {
+        let tf = UITextField()
+        tf.placeholder = "Step text"
+        tf.borderStyle = .roundedRect
+        tf.font = .systemFont(ofSize: 17)
+        tf.addTarget(self, action: #selector(stepTextChanged), for: .editingChanged)
+        return tf
+    }()
+
+    private lazy var selectedStepTextField: UITextField = {
+        let tf = UITextField()
+        tf.placeholder = "Selected step text"
+        tf.borderStyle = .roundedRect
+        tf.font = .systemFont(ofSize: 17)
+        tf.addTarget(self, action: #selector(selectedStepTextChanged), for: .editingChanged)
+        return tf
+    }()
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -119,24 +143,35 @@ final class ViewController: UIViewController {
         thumbColorRow.spacing = 12
         thumbColorRow.alignment = .center
 
+        let stepTextRow = UIStackView(arrangedSubviews: [labelWithText("Step text"), stepTextField])
+        stepTextRow.axis = .horizontal
+        stepTextRow.spacing = 12
+        stepTextRow.alignment = .center
+
+        let selectedStepTextRow = UIStackView(arrangedSubviews: [labelWithText("Selected text"), selectedStepTextField])
+        selectedStepTextRow.axis = .horizontal
+        selectedStepTextRow.spacing = 12
+        selectedStepTextRow.alignment = .center
+
         stackView.addArrangedSubview(titleLabel)
         stackView.addArrangedSubview(slider)
         stackView.addArrangedSubview(stepLabel)
         stackView.addArrangedSubview(stepsRow)
         stackView.addArrangedSubview(trackColorRow)
         stackView.addArrangedSubview(thumbColorRow)
+        stackView.addArrangedSubview(stepTextRow)
+        stackView.addArrangedSubview(selectedStepTextRow)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            stackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 20),
-            stackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 20),
-            stackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -20),
-            stackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -40),
-            slider.heightAnchor.constraint(greaterThanOrEqualToConstant: 60),
+            view.safeAreaLayoutGuide.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            view.safeAreaLayoutGuide.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            
+            stackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            stackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            stackView.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor),
         ])
     }
 
@@ -188,5 +223,15 @@ final class ViewController: UIViewController {
         guard let color = thumbColorWell.selectedColor else { return }
         thumbTintColor = color
         slider.thumbTintColor = color
+    }
+
+    @objc private func stepTextChanged() {
+        stepText = stepTextField.text ?? ""
+        slider.stepText = stepText
+    }
+
+    @objc private func selectedStepTextChanged() {
+        selectedStepText = selectedStepTextField.text ?? ""
+        slider.selectedStepText = selectedStepText
     }
 }

@@ -3,30 +3,64 @@
 
 import UIKit
 
-/// Discrete step slider; subclasses ``UIControl`` and sends ``UIControl/Event/valueChanged``. Pan or tap (with wobble) to change step; supports optional step labels and thumb image.
+/// Discrete step slider; subclasses ``UIControl`` and sends ``UIControl/Event/valueChanged``.
+/// Pan or tap to change step; supports optional step labels, thumb image, and full VoiceOver accessibility.
 final public class MASliderControl: UIControl {
+
+    // MARK: - Types
+
     private struct StepCenterPair {
         var index: Int
         var center: CGPoint
     }
-    
-    protocol DataSource: AnyObject {
+
+    public protocol DataSource: AnyObject {
         func slider(_ slider: MASliderControl, titleForIndex index: Int) -> NSAttributedString
     }
-    
+
+    private struct DirtyFlags: OptionSet {
+        let rawValue: UInt8
+        static let track      = DirtyFlags(rawValue: 1 << 0)
+        static let knots      = DirtyFlags(rawValue: 1 << 1)
+        static let thumb      = DirtyFlags(rawValue: 1 << 2)
+        static let labels     = DirtyFlags(rawValue: 1 << 3)
+        static let knotColors = DirtyFlags(rawValue: 1 << 4)
+        static let thumbColor = DirtyFlags(rawValue: 1 << 5)
+        static let geometry: DirtyFlags = [.track, .knots, .thumb, .labels]
+        static let all: DirtyFlags = [.track, .knots, .thumb, .labels, .knotColors, .thumbColor]
+    }
+
+    private enum Layout {
+        static let thumbSize: CGFloat = 44
+        static let knotSize: CGFloat = 16
+        static let trackHeight: CGFloat = 4
+        static let labelTopPadding: CGFloat = 8
+        static let animationDuration: TimeInterval = 0.15
+        static let springDamping: CGFloat = 0.7
+        static let labelFont: UIFont = .systemFont(ofSize: 11)
+        static let selectedLabelFont: UIFont = .boldSystemFont(ofSize: 13)
+    }
+
+    // MARK: - Public properties
+
     /// Height from thumb plus label area; width is unspecified so the control fills horizontally.
     public override var intrinsicContentSize: CGSize {
-        let height = kThumbSize + rectForLabels().height
+        var height = Layout.thumbSize
+        if hasLabels {
+            height = valueLabels.map { $0.frame.maxY }.max() ?? Layout.thumbSize
+        }
         return CGSize(width: UIView.noIntrinsicMetric, height: height)
     }
-    
+
     /// Current step index (0-based); clamped to ``numberOfSteps`` - 1.
     public var step: Int {
         get { _step }
         set {
-            _step = min(newValue, numberOfSteps - 1)
-            updateThumb(withSelectedStep: _step)
-            updateValueLabels()
+            let clamped = min(max(newValue, 0), numberOfSteps - 1)
+            guard clamped != _step else { return }
+            _step = clamped
+            dirty.insert([.thumb, .labels])
+            setNeedsLayout()
         }
     }
 
@@ -34,8 +68,12 @@ final public class MASliderControl: UIControl {
     public var numberOfSteps: Int {
         get { _numberOfSteps }
         set {
-            _numberOfSteps = max(2, newValue)
-            updateKnots()
+            let clamped = max(2, newValue)
+            guard clamped != _numberOfSteps else { return }
+            _numberOfSteps = clamped
+            _step = min(_step, _numberOfSteps - 1)
+            dirty.insert(.geometry)
+            setNeedsLayout()
         }
     }
 
@@ -44,9 +82,8 @@ final public class MASliderControl: UIControl {
         get { _trackTintColor }
         set {
             _trackTintColor = newValue
-            trackLayer.fillColor = _trackTintColor.cgColor
-            updateKnotsColor()
-            setNeedsDisplay()
+            dirty.insert([.track, .knotColors])
+            setNeedsLayout()
         }
     }
 
@@ -55,21 +92,21 @@ final public class MASliderControl: UIControl {
         get { _thumbTintColor }
         set {
             _thumbTintColor = newValue
-            thumb.backgroundColor = thumbTintColor
-            setNeedsDisplay()
+            dirty.insert(.thumbColor)
+            setNeedsLayout()
         }
     }
 
     /// Optional image on the thumb (e.g. SF Symbol); rendered as template with white tint.
     public var thumbImage: UIImage? {
         didSet {
-            guard let thumbImage = thumbImage else { return }
-            let img = thumbImage.withRenderingMode(.alwaysTemplate)
-            thumb.setImage(img, for: .normal)
-            thumb.setImage(img, for: .selected)
-            thumb.setImage(img, for: .highlighted)
-            thumb.tintColor = .white
-            setNeedsDisplay()
+            if let img = thumbImage?.withRenderingMode(.alwaysTemplate) {
+                thumbImageView.image = img
+                thumbImageView.isHidden = false
+            } else {
+                thumbImageView.image = nil
+                thumbImageView.isHidden = true
+            }
         }
     }
 
@@ -77,9 +114,9 @@ final public class MASliderControl: UIControl {
     public var stepText: String {
         get { _stepText }
         set {
-            _stepText = newValue.isEmpty ? "" : newValue
-            updateValueLabels()
-            setNeedsDisplay()
+            _stepText = newValue
+            dirty.insert(.labels)
+            setNeedsLayout()
         }
     }
 
@@ -87,9 +124,9 @@ final public class MASliderControl: UIControl {
     public var attributedStepText: NSAttributedString {
         get { _attributedStepText }
         set {
-            _attributedStepText = newValue.length > 0 ? newValue : NSAttributedString(string: "")
-            updateValueLabels()
-            setNeedsDisplay()
+            _attributedStepText = newValue
+            dirty.insert(.labels)
+            setNeedsLayout()
         }
     }
 
@@ -97,9 +134,9 @@ final public class MASliderControl: UIControl {
     public var selectedStepText: String {
         get { _selectedStepText }
         set {
-            _selectedStepText = newValue.isEmpty ? "" : newValue
-            updateValueLabels()
-            setNeedsDisplay()
+            _selectedStepText = newValue
+            dirty.insert(.labels)
+            setNeedsLayout()
         }
     }
 
@@ -107,413 +144,150 @@ final public class MASliderControl: UIControl {
     public var attributedSelectedStepText: NSAttributedString {
         get { _attributedSelectedStepText }
         set {
-            _attributedSelectedStepText = newValue.length > 0 ? newValue : NSAttributedString(string: "")
-            updateValueLabels()
-            setNeedsDisplay()
+            _attributedSelectedStepText = newValue
+            dirty.insert(.labels)
+            setNeedsLayout()
         }
     }
 
     /// Optional data source for custom per-step titles.
-    weak var dataSource: MASliderControl.DataSource?
+    public weak var dataSource: MASliderControl.DataSource?
 
     // MARK: - Init
 
-    /// Initializes a new ``MASliderControl`` instance.
-    /// - Parameter frame: The frame for the control.
     public override init(frame: CGRect) {
         super.init(frame: frame)
-        initProperties()
+        commonInit()
     }
 
-    /// Initializes a new ``MASliderControl`` instance from a NSCoder.
-    /// - Parameter coder: The NSCoder to decode the control from.
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
-        initProperties()
+        commonInit()
     }
 
     /// Sets the current step; when `animated` is true, the thumb animates to the new position.
-    /// - Parameters:
-    ///   - step: The step index to set (clamped to valid range).
-    ///   - animated: When true, the thumb animates to the new position.
     public func set(step: Int, animated: Bool) {
-        let animations: () -> Void = { self.step = step }
-        
         if animated {
             UIView.animate(
-                withDuration: kAnimationSpeed,
+                withDuration: Layout.animationDuration,
                 delay: 0,
-                options: .curveEaseInOut,
-                animations: animations)
+                usingSpringWithDamping: Layout.springDamping,
+                initialSpringVelocity: 0,
+                options: [],
+                animations: { self.step = step; self.layoutIfNeeded() }
+            )
         } else {
-            animations()
+            self.step = step
         }
     }
+
+    // MARK: - Private state
+
+    private var _step: Int = 0
+    private var _numberOfSteps: Int = 2
+    private var _trackTintColor: UIColor = .systemBlue
+    private var _thumbTintColor: UIColor = .systemBlue
+    private var _stepText: String = ""
+    private var _attributedStepText: NSAttributedString = .init(string: "")
+    private var _selectedStepText: String = ""
+    private var _attributedSelectedStepText: NSAttributedString = .init(string: "")
+
+    private var dirty: DirtyFlags = .all
+
+    // MARK: - Sublayers & subviews (non-optional)
+
+    private let trackLayer: CAShapeLayer = {
+        let l = CAShapeLayer()
+        return l
+    }()
+
+    private let knotsContainerLayer = CALayer()
+
+    private var knotLayers: [CAShapeLayer] = []
+
+    private let thumbView: UIView = {
+        let v = UIView(frame: CGRect(origin: .zero, size: CGSize(width: Layout.thumbSize, height: Layout.thumbSize)))
+        v.layer.cornerRadius = Layout.thumbSize / 2
+        v.clipsToBounds = true
+        return v
+    }()
+
+    private let thumbImageView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFit
+        iv.tintColor = .white
+        iv.isHidden = true
+        return iv
+    }()
+
+    private var valueLabels: [UILabel] = []
+
+    private lazy var panGesture: UIPanGestureRecognizer = {
+        let g = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        g.cancelsTouchesInView = false
+        return g
+    }()
+
+    private lazy var tapGesture: UITapGestureRecognizer = {
+        let g = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        return g
+    }()
 
     // MARK: - Setup
 
-    /// Initializes the properties for the ``MASliderControl`` instance.
-    private func initProperties() {
-        trackLayer = CAShapeLayer()
-        trackLayer.path = trackBezierPath().cgPath
-        trackLayer.fillColor = trackTintColor.cgColor
+    private func commonInit() {
+        backgroundColor = .clear
+
         layer.addSublayer(trackLayer)
+        layer.addSublayer(knotsContainerLayer)
 
-        knotsLayer = CALayer()
-        layer.addSublayer(knotsLayer)
-        knots = []
+        thumbView.backgroundColor = _thumbTintColor
+        thumbImageView.frame = thumbView.bounds.insetBy(dx: 8, dy: 8)
+        thumbImageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        thumbView.addSubview(thumbImageView)
+        addSubview(thumbView)
 
-        thumb.center = CGPoint(x: kThumbSize / 2, y: rectForSlider().size.height / 2)
-        thumb.layer.cornerRadius = thumb.frame.size.height / 2
-        thumb.backgroundColor = thumbTintColor
-        addSubview(thumb)
+        thumbView.addGestureRecognizer(panGesture)
+        tapGesture.require(toFail: panGesture)
+        addGestureRecognizer(tapGesture)
 
-        valueLabels = []
-
-        panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-        panGestureRecognizer.cancelsTouchesInView = false
-        thumb.addGestureRecognizer(panGestureRecognizer)
-
-        tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        tapGestureRecognizer.cancelsTouchesInView = false
-        thumb.addGestureRecognizer(tapGestureRecognizer)
-        
-        backgroundColor = .systemGreen
+        // Accessibility
+        isAccessibilityElement = true
+        accessibilityTraits = .adjustable
+        updateAccessibilityValue()
     }
 
-    // MARK: - Geometry
-    
-    /// Animation speed for the thumb movement.
-    private let kAnimationSpeed: CGFloat = 0.15
-    /// Size of the thumb.
-    private let kThumbSize: CGFloat = 44
-    /// Height of the label area.
-    private let kLabelAreaHeight: CGFloat = 24
-    /// Size of the step knots.
-    private let kKnotSize: CGFloat = 16
-    /// Width of the track.
-    private let kTrackWidth: CGFloat = 4
+    // MARK: - Geometry helpers
 
-    /// Rectangle for the track.
+    private var hasLabels: Bool {
+        !_stepText.isEmpty || !_selectedStepText.isEmpty ||
+        _attributedStepText.length > 0 || _attributedSelectedStepText.length > 0 ||
+        dataSource != nil
+    }
+
+    private var sliderRect: CGRect {
+        CGRect(x: 0, y: 0, width: bounds.width, height: Layout.thumbSize)
+    }
+
+    private var labelsRect: CGRect {
+        CGRect(x: 0, y: Layout.thumbSize, width: bounds.width, height: bounds.height - Layout.thumbSize)
+    }
+
     private func trackRect() -> CGRect {
         CGRect(
-            x: kThumbSize / 2,
-            y: rectForSlider().size.height / 2 - kTrackWidth / 2,
-            width: rectForSlider().size.width - kThumbSize,
-            height: kTrackWidth
+            x: Layout.thumbSize / 2,
+            y: sliderRect.height / 2 - Layout.trackHeight / 2,
+            width: sliderRect.width - Layout.thumbSize,
+            height: Layout.trackHeight
         )
     }
 
-    /// Bezier path for the track.
-    private func trackBezierPath() -> UIBezierPath {
-        UIBezierPath(rect: trackRect())
-    }
-
-    /// Rectangle for the slider.
-    private func rectForSlider() -> CGRect {
-        CGRect(x: 0, y: 0, width: bounds.size.width, height: kThumbSize)
-    }
-
-    /// Rectangle for the labels.
-    private func rectForLabels() -> CGRect {
-        CGRect(x: 0, y: kThumbSize, width: bounds.size.width, height: bounds.size.height - kThumbSize)
-    }
-
-    /// Center position for the step at the given index.
     private func centerPosition(for index: Int) -> CGPoint {
-        var xPos = trackRect().size.width / CGFloat(numberOfSteps - 1) * CGFloat(index) + kThumbSize / 2
-        let yPos = rectForSlider().size.height / 2
+        guard numberOfSteps > 1 else { return CGPoint(x: Layout.thumbSize / 2, y: sliderRect.height / 2) }
 
-        if index == 0 {
-            xPos = kThumbSize / 2
-        } else if index == numberOfSteps - 1 {
-            xPos = rectForSlider().size.width - kThumbSize / 2
-        }
-
-        return CGPoint(x: xPos, y: yPos)
-    }
-
-    /// Knot for the step at the given index.
-    private func knot(for index: Int) -> CAShapeLayer {
-        let layer = CAShapeLayer()
-        let center = centerPosition(for: index)
-        let rect = CGRect(x: center.x - kKnotSize / 2, y: center.y - kKnotSize / 2, width: kKnotSize, height: kKnotSize)
-        layer.path = UIBezierPath(roundedRect: rect, cornerRadius: kKnotSize / 2).cgPath
-        layer.fillColor = trackTintColor.cgColor
-        return layer
-    }
-
-    // MARK: - Updates
-    
-    /// Current step index (0-based); clamped to ``numberOfSteps`` - 1.
-    private var _step: Int = 0
-    
-    /// Total number of steps (minimum 2).
-    private var _numberOfSteps: Int = 2
-    
-    /// Color of the track and step knots.
-    private var _trackTintColor: UIColor = .systemBlue
-    
-    /// Background color of the thumb.
-    private var _thumbTintColor: UIColor = .systemBlue
-    
-    /// Label text for unselected steps.
-    private var _stepText: String = ""
-    
-    /// Attributed label for unselected steps (overrides `stepText` when set).
-    private var _attributedStepText: NSAttributedString = .init(string: "")
-    
-    /// Label text for the selected step.
-    private var _selectedStepText: String = ""
-    
-    /// Attributed label for the selected step (overrides `selectedStepText` when set).
-    private var _attributedSelectedStepText: NSAttributedString = .init(string: "")
-    
-    /// Layer for the track.
-    private var trackLayer: CAShapeLayer!
-    
-    /// Layer for the step knots.
-    private var knotsLayer: CALayer!
-    
-    /// Step knots.
-    private var knots: [CAShapeLayer] = []
-    
-    /// Thumb button.
-    private lazy var thumb: UIButton = {
-        let size = CGSize(width: self.kThumbSize, height: self.kThumbSize)
-        let thumb = UIButton(frame: CGRect(origin: .zero, size: size))
-        thumb.translatesAutoresizingMaskIntoConstraints = true
-        return thumb
-    }()
-    
-    /// Value labels.
-    private var valueLabels: [UILabel] = []
-    
-    /// Pan gesture recognizer.
-    private var panGestureRecognizer: UIPanGestureRecognizer!
-    
-    /// Tap gesture recognizer.
-    private var tapGestureRecognizer: UITapGestureRecognizer!
-
-    /// Updates the layer for the step knots.
-    private func updateKnotsLayer() {
-        knotsLayer.frame = rectForSlider()
-    }
-
-    /// Updates the color of the step knots.
-    private func updateKnotsColor() {
-        for knot in knots {
-            knot.fillColor = trackTintColor.cgColor
-        }
-    }
-
-    /// Updates the step knots.
-    private func updateKnots() {
-        for layer in knots {
-            layer.removeFromSuperlayer()
-        }
-
-        var newKnots: [CAShapeLayer] = []
-        for i in 0..<numberOfSteps {
-            let layer = knot(for: i)
-            knotsLayer.addSublayer(layer)
-            newKnots.append(layer)
-        }
-        knots = newKnots
-        setNeedsDisplay()
-    }
-
-    /// Updates the track.
-    private func updateTrack() {
-        trackLayer.path = trackBezierPath().cgPath
-        setNeedsDisplay()
-    }
-
-    /// Updates the thumb.
-    private func updateThumb(withSelectedStep step: Int) {
-        let pos = centerPosition(for: step)
-        thumb.center = pos
-        setNeedsDisplay()
-    }
-
-    /// Value label for the step at the given index.
-    /// - Parameters:
-    ///   - index: The index of the step.
-    ///   - selected: Whether the step is selected.
-    /// - Returns: A ``UILabel`` for the step.
-    private func valueLabel(for index: Int, selected: Bool) -> UILabel {
-        let labelsRect = rectForLabels()
-        let xPos = labelsRect.size.width / CGFloat(numberOfSteps) * CGFloat(index)
-        let yPos = labelsRect.origin.y
-        let center = centerPosition(for: index)
-        let origin = CGPoint(x: xPos, y: yPos)
-        let size = CGSize(width: 64, height: labelsRect.size.height)
-        let rect = CGRect(origin: origin, size: size)
-        
-        let label = UILabel(frame: rect)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.textAlignment = .center
-        label.font = UIFont.systemFont(ofSize: 11)
-        label.text = stepText
-        label.textColor = .lightGray
-
-        if attributedStepText.length > 0 {
-            label.attributedText = attributedStepText
-        }
-
-        if selected {
-            label.font = UIFont.boldSystemFont(ofSize: 13)
-            label.text = selectedStepText
-            label.textColor = .black
-            if attributedSelectedStepText.length > 0 {
-                label.attributedText = attributedSelectedStepText
-            }
-        }
-
-        if let dataSource = dataSource {
-            let attribString = dataSource.slider(self, titleForIndex: index)
-            if attribString.length > 0 {
-                label.attributedText = attribString
-            }
-        }
-
-        label.sizeToFit()
-
-        let frame = label.frame
-        var xCenter = center.x
-
-        if xCenter - frame.size.width / 2 < 0 {
-            xCenter = frame.size.width / 2
-            
-        } else if xCenter + frame.size.width / 2 > labelsRect.size.width {
-            xCenter = labelsRect.size.width - frame.size.width / 2
-        }
-
-        label.center = CGPoint(x: xCenter, y: label.center.y + 8)
-        addSubview(label)
-
-        return label
-    }
-
-    /// Updates the value labels.
-    private func updateValueLabels() {
-        for label in valueLabels {
-            label.removeFromSuperview()
-        }
-
-        var newValueLabels: [UILabel] = []
-        for i in 0..<numberOfSteps {
-            let label = valueLabel(for: i, selected: i == step)
-            newValueLabels.append(label)
-        }
-        valueLabels = newValueLabels
-    }
-
-    /// Distance squared between two points.
-    /// - Parameters:
-    ///   - from: The starting point.
-    ///   - to: The ending point.
-    /// - Returns: The distance squared between the two points.
-    private func cgPointDistanceSquared(from: CGPoint, to: CGPoint) -> CGFloat {
-        (from.x - to.x) * (from.x - to.x) + (from.y - to.y) * (from.y - to.y)
-    }
-
-    /// Nearest step center to the given point.
-    /// - Parameters:
-    ///   - point: The point to find the nearest step center to.
-    /// - Returns: A ``StepCenterPair`` containing the index and center of the nearest step.
-    private func nearestStepCenter(from point: CGPoint) -> StepCenterPair {
-        var distance = CGFloat.greatestFiniteMagnitude
-        var index = 0
-        var nearestStepCenter = centerPosition(for: index)
-
-        for i in 0..<numberOfSteps {
-            let stepCenter = centerPosition(for: i)
-            let stepDistance = cgPointDistanceSquared(from: point, to: stepCenter)
-
-            if stepDistance < distance {
-                distance = stepDistance
-                index = i
-                nearestStepCenter = stepCenter
-            }
-        }
-
-        return StepCenterPair(index: index, center: nearestStepCenter)
-    }
-
-    // MARK: - Gestures
-
-    /// Handles the pan gesture.
-    /// - Parameters:
-    ///   - recognizer: The pan gesture recognizer.
-    @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
-        let state = recognizer.state
-
-        if state == .began || state == .changed {
-            let t = recognizer.translation(in: self)
-            var center = CGPoint(x: thumb.center.x + t.x, y: thumb.center.y)
-
-            if center.x + thumb.frame.size.width / 2 > frame.size.width {
-                center = CGPoint(x: frame.size.width - thumb.frame.size.width / 2, y: center.y)
-            } else if center.x - thumb.frame.size.width / 2 < 0 {
-                center = CGPoint(x: thumb.frame.size.width / 2, y: center.y)
-            }
-
-            thumb.center = center
-            recognizer.setTranslation(.zero, in: self)
-
-        } else if state == .ended {
-            UIView.animate(withDuration: kAnimationSpeed, delay: 0, options: .curveEaseInOut) {
-                let stepCenterPair = self.nearestStepCenter(from: self.thumb.center)
-                self.step = stepCenterPair.index
-                
-            } completion: { _ in
-                self.sendActions(for: .valueChanged)
-            }
-        }
-    }
-
-    /// Handles the tap gesture.
-    /// - Parameters:
-    ///   - recognizer: The tap gesture recognizer.
-    @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
-        let stepCenterPair = nearestStepCenter(from: thumb.center)
-        set(step: stepCenterPair.index, animated: true)
-        runWobbleAnimation {
-            self.sendActions(for: .valueChanged)
-        }
-    }
-
-    /// Runs the wobble animation.
-    /// - Parameters:
-    ///   - completion: The completion block to call when the animation is complete.
-    private func runWobbleAnimation(completion: (() -> Void)? = nil) {
-        let duration: TimeInterval = 0.25
-        let scale: CGFloat = 1.18
-        let rotation: CGFloat = .pi / 60
-        UIView.animate(
-            withDuration: duration * 0.4,
-            delay: 0,
-            options: .curveEaseOut,
-            animations: {
-                self.thumb.transform = CGAffineTransform(scaleX: scale, y: scale).rotated(by: -rotation)
-            },
-            completion: { _ in
-                UIView.animate(
-                    withDuration: duration * 0.6,
-                    delay: 0,
-                    usingSpringWithDamping: 0.4,
-                    initialSpringVelocity: 0.5,
-                    options: [],
-                    animations: {
-                        self.thumb.transform = .identity
-                    },
-                    completion: { _ in
-                        completion?()
-                    }
-                )
-            }
-        )
+        let tr = trackRect()
+        let xPos = tr.minX + tr.width * CGFloat(index) / CGFloat(numberOfSteps - 1)
+        return CGPoint(x: xPos, y: sliderRect.height / 2)
     }
 
     // MARK: - Layout
@@ -521,10 +295,286 @@ final public class MASliderControl: UIControl {
     public override func layoutSubviews() {
         super.layoutSubviews()
 
-        updateKnotsLayer()
-        updateKnots()
-        updateTrack()
-        updateThumb(withSelectedStep: step)
-        updateValueLabels()
+        let flags = dirty
+        dirty = []
+
+        if flags.contains(.track) {
+            layoutTrack()
+        }
+
+        if flags.contains(.knots) {
+            reconcileKnots()
+            layoutKnots()
+        }
+
+        if flags.contains(.knotColors) {
+            updateKnotColors()
+        }
+
+        if flags.contains(.thumb) {
+            layoutThumb()
+        }
+
+        if flags.contains(.thumbColor) {
+            thumbView.backgroundColor = _thumbTintColor
+        }
+
+        if flags.contains(.labels) {
+            reconcileLabels()
+            layoutLabels()
+            invalidateIntrinsicContentSize()
+        }
+
+        updateAccessibilityValue()
+    }
+
+    private func layoutTrack() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        trackLayer.path = UIBezierPath(rect: trackRect()).cgPath
+        trackLayer.fillColor = _trackTintColor.cgColor
+        CATransaction.commit()
+    }
+
+    // MARK: - Knot reconciliation
+
+    private func reconcileKnots() {
+        let current = knotLayers.count
+        let target = numberOfSteps
+
+        if current < target {
+            for _ in current..<target {
+                let l = CAShapeLayer()
+                knotsContainerLayer.addSublayer(l)
+                knotLayers.append(l)
+            }
+        } else if current > target {
+            for i in stride(from: current - 1, through: target, by: -1) {
+                knotLayers[i].removeFromSuperlayer()
+            }
+            knotLayers.removeLast(current - target)
+        }
+    }
+
+    private func layoutKnots() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        knotsContainerLayer.frame = sliderRect
+        for (i, knot) in knotLayers.enumerated() {
+            let center = centerPosition(for: i)
+            let rect = CGRect(
+                x: center.x - Layout.knotSize / 2,
+                y: center.y - Layout.knotSize / 2,
+                width: Layout.knotSize,
+                height: Layout.knotSize
+            )
+            knot.path = UIBezierPath(roundedRect: rect, cornerRadius: Layout.knotSize / 2).cgPath
+            knot.fillColor = _trackTintColor.cgColor
+        }
+        CATransaction.commit()
+    }
+
+    private func updateKnotColors() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for knot in knotLayers {
+            knot.fillColor = _trackTintColor.cgColor
+        }
+        CATransaction.commit()
+    }
+
+    // MARK: - Thumb layout
+
+    private func layoutThumb() {
+        let pos = centerPosition(for: _step)
+        thumbView.center = pos
+    }
+
+    // MARK: - Label reconciliation
+
+    private func reconcileLabels() {
+        let current = valueLabels.count
+        let target = hasLabels ? numberOfSteps : 0
+
+        if current < target {
+            for _ in current..<target {
+                let label = UILabel()
+                label.textAlignment = .center
+                addSubview(label)
+                valueLabels.append(label)
+            }
+        } else if current > target {
+            for i in stride(from: current - 1, through: target, by: -1) {
+                valueLabels[i].removeFromSuperview()
+            }
+            valueLabels.removeLast(current - target)
+        }
+    }
+
+    private func layoutLabels() {
+        guard hasLabels else { return }
+
+        for (i, label) in valueLabels.enumerated() {
+            let selected = (i == _step)
+
+            // Set content
+            if let ds = dataSource {
+                let attrib = ds.slider(self, titleForIndex: i)
+                if attrib.length > 0 {
+                    label.attributedText = attrib
+                } else {
+                    applyDefaultText(to: label, selected: selected)
+                }
+            } else {
+                applyDefaultText(to: label, selected: selected)
+            }
+
+            label.sizeToFit()
+
+            // Position
+            let center = centerPosition(for: i)
+            var xCenter = center.x
+            let halfWidth = label.frame.width / 2
+
+            if xCenter - halfWidth < 0 {
+                xCenter = halfWidth
+            } else if xCenter + halfWidth > bounds.width {
+                xCenter = bounds.width - halfWidth
+            }
+
+            label.center = CGPoint(x: xCenter, y: Layout.thumbSize + Layout.labelTopPadding + label.frame.height / 2)
+        }
+    }
+
+    private func applyDefaultText(to label: UILabel, selected: Bool) {
+        if selected {
+            label.font = Layout.selectedLabelFont
+            label.textColor = .label
+            if _attributedSelectedStepText.length > 0 {
+                label.attributedText = _attributedSelectedStepText
+            } else {
+                label.attributedText = nil
+                label.text = _selectedStepText
+            }
+        } else {
+            label.font = Layout.labelFont
+            label.textColor = .secondaryLabel
+            if _attributedStepText.length > 0 {
+                label.attributedText = _attributedStepText
+            } else {
+                label.attributedText = nil
+                label.text = _stepText
+            }
+        }
+    }
+
+    // MARK: - Gestures
+
+    @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
+        let state = recognizer.state
+
+        if state == .began || state == .changed {
+            let t = recognizer.translation(in: self)
+            var center = CGPoint(x: thumbView.center.x + t.x, y: thumbView.center.y)
+
+            let halfThumb = Layout.thumbSize / 2
+            center.x = min(max(center.x, halfThumb), bounds.width - halfThumb)
+
+            thumbView.center = center
+            recognizer.setTranslation(.zero, in: self)
+
+        } else if state == .ended {
+            let nearest = nearestStepCenter(from: thumbView.center)
+            _step = nearest.index
+            dirty.insert(.labels)
+
+            UIView.animate(
+                withDuration: Layout.animationDuration,
+                delay: 0,
+                usingSpringWithDamping: Layout.springDamping,
+                initialSpringVelocity: 0,
+                options: []
+            ) {
+                self.thumbView.center = nearest.center
+                self.layoutLabels()
+            } completion: { _ in
+                self.updateAccessibilityValue()
+                self.sendActions(for: .valueChanged)
+            }
+        }
+    }
+
+    @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
+        let location = recognizer.location(in: self)
+        let nearest = nearestStepCenter(from: location)
+
+        guard nearest.index != _step else { return }
+
+        _step = nearest.index
+        dirty.insert(.labels)
+
+        UIView.animate(
+            withDuration: Layout.animationDuration,
+            delay: 0,
+            usingSpringWithDamping: Layout.springDamping,
+            initialSpringVelocity: 0,
+            options: []
+        ) {
+            self.thumbView.center = nearest.center
+            self.layoutLabels()
+        } completion: { _ in
+            self.updateAccessibilityValue()
+            self.sendActions(for: .valueChanged)
+        }
+    }
+
+    // MARK: - Nearest step
+
+    private func nearestStepCenter(from point: CGPoint) -> StepCenterPair {
+        var bestDistance = CGFloat.greatestFiniteMagnitude
+        var bestIndex = 0
+        var bestCenter = centerPosition(for: 0)
+
+        for i in 0..<numberOfSteps {
+            let c = centerPosition(for: i)
+            let dx = point.x - c.x
+            let dy = point.y - c.y
+            let dist = dx * dx + dy * dy
+            if dist < bestDistance {
+                bestDistance = dist
+                bestIndex = i
+                bestCenter = c
+            }
+        }
+
+        return StepCenterPair(index: bestIndex, center: bestCenter)
+    }
+
+    // MARK: - Accessibility
+
+    private func updateAccessibilityValue() {
+        accessibilityValue = "Step \(_step + 1) of \(numberOfSteps)"
+    }
+
+    public override func accessibilityIncrement() {
+        guard _step < numberOfSteps - 1 else { return }
+        set(step: _step + 1, animated: true)
+        sendActions(for: .valueChanged)
+    }
+
+    public override func accessibilityDecrement() {
+        guard _step > 0 else { return }
+        set(step: _step - 1, animated: true)
+        sendActions(for: .valueChanged)
+    }
+
+    // MARK: - Trait changes
+
+    public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            dirty.insert(.labels)
+            setNeedsLayout()
+        }
     }
 }

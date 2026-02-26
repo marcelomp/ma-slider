@@ -11,10 +11,8 @@ struct SwiftUISampleView: View {
     @State private var trackTintColor: Color = .red
     @State private var thumbTintColor: Color = .red
     @State private var thumbImage: UIImage? = UIImage(systemName: "lock.fill")
-    @State private var stepText: String? = nil
-    @State private var attributedStepText: AttributedString? = nil
-    @State private var selectedStepText: String? = nil
-    @State private var attributedSelectedStepText: AttributedString? = nil
+    @State private var stepText: String = ""
+    @State private var selectedStepText: String = ""
     
     var body: some View {
         VStack {
@@ -27,10 +25,8 @@ struct SwiftUISampleView: View {
                 trackTintColor: trackTintColor,
                 thumbTintColor: thumbTintColor,
                 thumbImage: thumbImage,
-                stepText: stepText,
-                attributedStepText: attributedStepText,
-                selectedStepText: selectedStepText,
-                attributedSelectedStepText: attributedSelectedStepText)
+                stepText: stepText.isEmpty ? nil : stepText,
+                selectedStepText: selectedStepText.isEmpty ? nil : selectedStepText)
             
             Text("Step: \(step) of \(numberOfSteps)")
                 .font(.headline)
@@ -39,6 +35,11 @@ struct SwiftUISampleView: View {
 
             ColorPicker("trackTintColor", selection: $trackTintColor)
             ColorPicker("thumbTintColor", selection: $thumbTintColor)
+
+            TextField("Step text", text: $stepText)
+                .textFieldStyle(.roundedBorder)
+            TextField("Selected step text", text: $selectedStepText)
+                .textFieldStyle(.roundedBorder)
         }
         .padding()
         .onChange(of: numberOfSteps) { _, newCount in

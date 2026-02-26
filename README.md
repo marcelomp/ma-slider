@@ -13,12 +13,40 @@ A discrete step-based slider for iOS. Use it from UIKit via `MASliderControl` or
 - UIKit: `MASliderControl` subclasses `UIControl`
 - SwiftUI: `MASlider` view with `Binding<Int>` for `step`
 
-## UIControl and methods to update
+## Usage
 
-The UIKit type is **`MASliderControl`**, a subclass of `UIControl`.
+### UIKit
 
-- **Observe value changes:** Use `addTarget(_:action:for:)` with `.valueChanged` (and optionally other events) to react when the user changes the step.
-- **Update programmatically:** Set `step` or call `set(step:animated:)`; set `numberOfSteps`, `trackTintColor`, `thumbTintColor`, `thumbImage`, and the step/selected text or attributed text properties as needed.
+```swift
+let slider = MASliderControl()
+slider.numberOfSteps = 4
+slider.step = 1
+slider.trackTintColor = .systemBlue
+slider.thumbTintColor = .systemBlue
+slider.thumbImage = UIImage(systemName: "star.fill")
+slider.stepText = "○"
+slider.selectedStepText = "●"
+slider.addTarget(self, action: #selector(stepChanged), for: .valueChanged)
+
+@objc func stepChanged() {
+    print("Current step: \(slider.step)")
+}
+```
+
+### SwiftUI
+
+```swift
+@State private var step: Int = 1
+
+MASlider(
+    step: $step,
+    numberOfSteps: 4,
+    trackTintColor: .blue,
+    thumbTintColor: .blue,
+    thumbImage: UIImage(systemName: "star.fill"),
+    stepText: "○",
+    selectedStepText: "●")
+```
 
 ## Requirements
 
@@ -42,7 +70,7 @@ Build the DocC documentation with `swift package generate-documentation` (requir
 
 ## Author
 
-mpmarcelomp@gmail.com
+[mpmarcelomp@gmail.com](mailto:mpmarcelomp@gmail.com)
 
 ## License
 
